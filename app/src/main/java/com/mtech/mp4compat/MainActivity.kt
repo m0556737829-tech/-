@@ -15,6 +15,8 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.ScrollView
+import android.widget.Spinner
+import android.widget.ArrayAdapter
 import android.widget.TextView
 import android.widget.Toast
 import androidx.media3.common.MediaItem
@@ -39,6 +41,8 @@ class MainActivity : Activity() {
     private lateinit var convertButton: Button
     private lateinit var progress: ProgressBar
     private lateinit var shareButton: Button
+    private lateinit var profileSpinner: Spinner
+    private val profiles = listOf("Canon — תאימות רחבה · 1080p", "Android רגיל · 1080p", "Android ישן / תאימות מרבית · 720p", "קובץ קטן יותר · 720p")
     private var selectedUri: Uri? = null
     private var selectedName: String = "video"
     private var working = false
@@ -84,6 +88,18 @@ class MainActivity : Activity() {
             setOnClickListener { startConversion() }
         }
         content.addView(convertButton, matchWrap().apply { topMargin = dp(10) })
+        content.addView(TextView(this).apply {
+            text = "3. בחירת יעד וקידוד"
+            textSize = 16f
+            setTextColor(0xFFF2F5FF.toInt())
+            gravity = Gravity.RIGHT
+            setPadding(0, dp(18), 0, dp(6))
+        }, matchWrap())
+        profileSpinner = Spinner(this).apply {
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, profiles)
+            setSelection(0)
+        }
+        content.addView(profileSpinner, matchWrap())
         progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
             max = 100
             progress = 0
@@ -99,7 +115,7 @@ class MainActivity : Activity() {
         }
         content.addView(status, matchWrap())
         content.addView(TextView(this).apply {
-            text = "פרופיל ההמרה:\n• וידאו H.264 / AVC בתוך MP4\n• שמע AAC\n• עד 1080p\n\nההמרה מתבצעת במכשיר. סרטון גדול עשוי לקחת זמן ולצרוך סוללה. התאימות תלויה גם בדגם Canon וביכולות הנגן."
+            text = "הפרופילים משתמשים בקובץ MP4 עם וידאו H.264/AVC ושמע AAC. בחירת Canon מכוונת לתאימות רחבה; פרופיל 720p מיועד לנגנים ישנים יותר או לקובץ קטן יותר. לא ניתן להבטיח תאימות לכל דגם בלי מספר הדגם.\n\nההמרה מתבצעת במכשיר והסרטון המקורי נשאר ללא שינוי."
             textSize = 14f
             setTextColor(0xFFB7C4DD.toInt())
             gravity = Gravity.RIGHT
@@ -154,7 +170,9 @@ class MainActivity : Activity() {
         status.text = "מכין את ההמרה…\nייתכן שיידרשו כמה דקות."
         val temp = File(cacheDir, "converted_${System.currentTimeMillis()}.mp4")
         try {
-            val effects = Effects(emptyList(), listOf(Presentation.createForHeight(1080)))
+            val selectedProfile = profileSpinner.selectedItemPosition
+            val targetHeight = if (selectedProfile >= 2) 720 else 1080
+            val effects = Effects(emptyList(), listOf(Presentation.createForHeight(targetHeight)))
             val edited = EditedMediaItem.Builder(MediaItem.fromUri(uri))
                 .setEffects(effects)
                 .build()
@@ -169,7 +187,7 @@ class MainActivity : Activity() {
                                 lastOutput = saved
                                 progress.isIndeterminate = false
                                 progress.progress = 100
-                                status.text = "ההמרה הושלמה!\nהקובץ נשמר בתיקיית Movies/MP4 Converter."
+                                status.text = "ההמרה הושלמה!\nפרופיל: ${profiles[profileSpinner.selectedItemPosition]}\nקידוד: MP4 / H.264 + AAC\nהקובץ נשמר בתיקיית Movies/MP4 Converter."
                                 shareButton.isEnabled = true
                                 Toast.makeText(this@MainActivity, "הסרטון הומר ונשמר", Toast.LENGTH_LONG).show()
                             } catch (e: Exception) {
